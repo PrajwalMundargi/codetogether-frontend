@@ -186,7 +186,7 @@ function SignupPage() {
                 },
                 body: JSON.stringify(form),
             });
-            router.push('https://codetogether-frontend-j763.vercel.app/dashboard');
+            router.push('https://codetogether-frontend-ten.vercel.app/dashboard');
 
             const data = await response.json();
 

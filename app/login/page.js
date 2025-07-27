@@ -172,7 +172,7 @@ function LoginPage(){
             const res = await axios.post('https://codetogether-backend-tr5r.onrender.com/api/auth/sign-in', form);
             localStorage.setItem('token', res.data.token);
             alert('Login successful');
-            router.push('https://codetogether-frontend-j763.vercel.app/dashboard')
+            router.push('https://codetogether-frontend-ten.vercel.app/dashboard')
             localStorage.setItem('token', res.data.token);
 
         }catch(error){
