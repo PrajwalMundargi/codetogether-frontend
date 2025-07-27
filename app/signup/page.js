@@ -179,14 +179,14 @@ function SignupPage() {
         }
 
         try {
-            const response = await fetch(' https://codetogether-backend-tr5r.onrender.comapi/auth/sign-up', {
+            const response = await fetch('https://codetogether-backend-tr5r.onrender.com/api/auth/sign-up', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(form),
             });
-            router.push('/dashboard');
+            router.push('https://codetogether-frontend-j763.vercel.app/dashboard');
 
             const data = await response.json();
 
