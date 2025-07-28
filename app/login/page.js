@@ -3,8 +3,10 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import axios from 'axios';
 import * as THREE from 'three';
-import {Github} from 'lucide-react';
+import { Github } from 'lucide-react';
 import Link from "next/link";
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function ThreeBackground(){
     const mountRef = useRef(null);
@@ -158,6 +160,7 @@ function LoginPage(){
         email:'',
         password:''
     });
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleChange = (e) => {
         setForm({
@@ -168,16 +171,58 @@ function LoginPage(){
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsLoading(true);
+        
+        // Show loading toast
+        const loadingToast = toast.loading("Signing you in...", {
+            position: "top-right",
+            theme: "dark"
+        });
+        
         try{
             const res = await axios.post('https://codetogether-backend-tr5r.onrender.com/api/auth/sign-in', form);
+            
+            // Dismiss loading toast
+            toast.dismiss(loadingToast);
+            
+            // Store token
             localStorage.setItem('token', res.data.token);
-            alert('Login successful');
-            router.push('https://codetogether-frontend-ten.vercel.app/dashboard')
-            localStorage.setItem('token', res.data.token);
+            
+            // Show success toast
+            toast.success("Login successful! Redirecting...", {
+                position: "top-right",
+                autoClose: 2000,
+                theme: "dark",
+                style: {
+                    background: 'linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%)',
+                    color: 'white'
+                }
+            });
+            
+            // Redirect after a short delay to show the success message
+            setTimeout(() => {
+                router.push('https://codetogether-frontend-ten.vercel.app/dashboard');
+            }, 1500);
 
-        }catch(error){
-            console.error('Login failed:',error);
-            alert('Login Failed');
+        } catch(error) {
+            // Dismiss loading toast
+            toast.dismiss(loadingToast);
+            
+            console.error('Login failed:', error);
+            
+            // Show error toast with specific message
+            const errorMessage = error.response?.data?.message || 'Invalid email or password';
+            toast.error(errorMessage, {
+                position: "top-right",
+                autoClose: 4000,
+                theme: "dark",
+                style: {
+                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                    color: 'white'
+                }
+            });
+        } finally {
+            setIsLoading(false);
         }
     }
 
@@ -201,7 +246,7 @@ function LoginPage(){
                         </div>
 
                         {/* Form */}
-                        <div className="space-y-6">
+                        <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Email Input */}
                             <div className="space-y-2">
                                 <label htmlFor="email" className="block text-sm font-medium text-white/90">
@@ -215,8 +260,9 @@ function LoginPage(){
                                         placeholder="Enter your email"
                                         value={form.email}
                                         onChange={handleChange}
+                                        disabled={isLoading}
                                         required
-                                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur-sm transition-all duration-300"
+                                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                     />
                                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                         <svg className="h-5 w-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -239,8 +285,9 @@ function LoginPage(){
                                         placeholder="Enter your password"
                                         value={form.password}
                                         onChange={handleChange}
+                                        disabled={isLoading}
                                         required
-                                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur-sm transition-all duration-300"
+                                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                     />
                                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                         <svg className="h-5 w-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -249,23 +296,33 @@ function LoginPage(){
                                     </div>
                                 </div>
                             </div>
-                            
-                           
 
                             {/* Submit Button */}
                             <button 
                                 type="submit"
-                                onClick={handleSubmit}
-                                className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-transparent"
+                                disabled={isLoading}
+                                className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-transparent disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                             >
                                 <span className="flex items-center justify-center">
-                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                                    </svg>
-                                    Sign In
+                                    {isLoading ? (
+                                        <>
+                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Signing In...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                                            </svg>
+                                            Sign In
+                                        </>
+                                    )}
                                 </span>
                             </button>
-                        </div>
+                        </form>
 
                         <div className="relative my-6">
                             <div className="absolute inset-0 flex items-center">
@@ -303,6 +360,25 @@ function LoginPage(){
                     </div>
                 </div>
             </div>
+            
+            {/* Toast Container */}
+            <ToastContainer
+                position="top-right"
+                autoClose={3000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme="dark"
+                toastStyle={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                }}
+            />
         </div>
     )
 }

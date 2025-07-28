@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Users, Plus, LogIn, Code2, Shield } from 'lucide-react';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import socket from '../../socket';
 
 function JoinOrCreateRoom() {
@@ -13,22 +15,39 @@ function JoinOrCreateRoom() {
   const router = useRouter();
 
   /* ------------------------------------------------------------------ */
-  const ensure = (cond, msg) => { 
-    if (!cond) { 
-      alert(msg); 
-      throw new Error(msg); 
-    } 
+  const validateInput = (field, value, fieldName) => {
+    if (!value.trim()) {
+      toast.error(`Please enter ${fieldName}!`, {
+        position: "top-right",
+        theme: "dark",
+        style: {
+          background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+          color: 'white'
+        }
+      });
+      return false;
+    }
+    return true;
   };
 
   /* ---------- create ---------- */
   const createRoom = () => {
-    ensure(username.trim(), 'Please enter your username first!');
-    ensure(password.trim(), 'Please enter a password!');
+    if (!validateInput('username', username, 'your username')) return;
+    if (!validateInput('password', password, 'a password')) return;
 
     setIsLoading(true);
 
+    // Show loading toast
+    const loadingToast = toast.loading("Creating your room...", {
+      position: "top-right",
+      theme: "dark"
+    });
+
     socket.emit('create-room', { username, password }, (res) => {
       setIsLoading(false);
+      
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
       
       if (res?.success && res?.roomCode) {
         // Store user info in sessionStorage for room access
@@ -39,24 +58,61 @@ function JoinOrCreateRoom() {
           isAuthenticated: true
         }));
         
-        alert(`Room created successfully! Room Code: ${res.roomCode}`);
-        router.push(`/room/${res.roomCode}`);
+        // Show success toast with room code
+        toast.success(
+          <div>
+            <div className="font-semibold">🎉 Room created successfully!</div>
+            <div className="text-sm mt-1">Room Code: <span className="font-mono bg-white/20 px-2 py-1 rounded">{res.roomCode}</span></div>
+          </div>,
+          {
+            position: "top-right",
+            autoClose: 4000,
+            theme: "dark",
+            style: {
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: 'white'
+            }
+          }
+        );
+        
+        // Redirect after showing success message
+        setTimeout(() => {
+          router.push(`/room/${res.roomCode}`);
+        }, 1500);
       } else {
-        alert(res?.error || 'Failed to create room. Please try again.');
+        // Show error toast
+        toast.error(res?.error || 'Failed to create room. Please try again.', {
+          position: "top-right",
+          autoClose: 4000,
+          theme: "dark",
+          style: {
+            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+            color: 'white'
+          }
+        });
       }
     });
   };
 
   /* ---------- join ------------ */
   const joinRoom = () => {
-    ensure(username.trim(), 'Please enter your username first!');
-    ensure(roomCode.trim(), 'Please enter a room code!');
-    ensure(password.trim(), 'Please enter a password!');
+    if (!validateInput('username', username, 'your username')) return;
+    if (!validateInput('roomCode', roomCode, 'a room code')) return;
+    if (!validateInput('password', password, 'the room password')) return;
 
     setIsLoading(true);
 
+    // Show loading toast
+    const loadingToast = toast.loading(`Joining room ${roomCode.toUpperCase()}...`, {
+      position: "top-right",
+      theme: "dark"
+    });
+
     socket.emit('join-room', { roomCode: roomCode.toUpperCase(), username, password }, (res) => {
       setIsLoading(false);
+      
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
       
       if (res?.success) {
         // Store user info in sessionStorage for room access
@@ -67,10 +123,39 @@ function JoinOrCreateRoom() {
           isAuthenticated: true
         }));
         
-        alert(`Successfully joined room ${roomCode.toUpperCase()}!`);
-        router.push(`/room/${roomCode.toUpperCase()}`);
+        // Show success toast
+        toast.success(
+          <div>
+            <div className="font-semibold">✅ Successfully joined room!</div>
+            <div className="text-sm mt-1">Welcome to room <span className="font-mono bg-white/20 px-2 py-1 rounded">{roomCode.toUpperCase()}</span></div>
+          </div>,
+          {
+            position: "top-right",
+            autoClose: 3000,
+            theme: "dark",
+            style: {
+              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+              color: 'white'
+            }
+          }
+        );
+        
+        // Redirect after showing success message
+        setTimeout(() => {
+          router.push(`/room/${roomCode.toUpperCase()}`);
+        }, 1500);
       } else {
-        alert(res?.error || 'Failed to join room. Please check room code and password.');
+        // Show specific error toast
+        const errorMessage = res?.error || 'Failed to join room. Please check room code and password.';
+        toast.error(errorMessage, {
+          position: "top-right",
+          autoClose: 5000,
+          theme: "dark",
+          style: {
+            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+            color: 'white'
+          }
+        });
       }
     });
   };
@@ -113,7 +198,7 @@ function JoinOrCreateRoom() {
                 onChange={e => setUsername(e.target.value)}
                 placeholder="Your Name"
                 disabled={isLoading}
-                className="w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all duration-300 disabled:opacity-50"
+                className="w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -125,7 +210,7 @@ function JoinOrCreateRoom() {
                 key={tab}
                 onClick={() => !isLoading && setActiveTab(tab)}
                 disabled={isLoading}
-                className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-300 disabled:opacity-50 ${
+                className={`flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
                   activeTab === tab
                     ? tab === 'create'
                       ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
@@ -150,7 +235,7 @@ function JoinOrCreateRoom() {
                 onChange={e => setRoomCode(e.target.value.toUpperCase())}
                 placeholder="Enter Room Code"
                 disabled={isLoading}
-                className="w-full px-4 py-4 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/50 text-center text-lg font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-300 disabled:opacity-50"
+                className="w-full px-4 py-4 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/50 text-center text-lg font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 maxLength={6}
               />
             </div>
@@ -169,7 +254,7 @@ function JoinOrCreateRoom() {
                 onChange={e => setPassword(e.target.value)}
                 placeholder={activeTab === 'create' ? 'Create Password' : 'Enter Password'}
                 disabled={isLoading}
-                className="w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all duration-300 disabled:opacity-50"
+                className="w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -179,7 +264,7 @@ function JoinOrCreateRoom() {
             <button
               onClick={createRoom}
               disabled={isLoading}
-              className="w-full py-4 mb-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:transform-none disabled:hover:scale-100"
+              className="w-full py-4 mb-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:transform-none disabled:hover:scale-100 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center">
@@ -196,7 +281,7 @@ function JoinOrCreateRoom() {
             <button
               onClick={joinRoom}
               disabled={isLoading}
-              className="w-full py-4 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:transform-none disabled:hover:scale-100"
+              className="w-full py-4 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-semibold rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:transform-none disabled:hover:scale-100 disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center">
@@ -216,6 +301,25 @@ function JoinOrCreateRoom() {
           {username ? `Welcome, ${username}!` : 'Ready to code? Enter your name to get started.'}
         </p>
       </div>
+
+      {/* Toast Container */}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+        toastStyle={{
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+        }}
+      />
 
       <style jsx>{`
         @keyframes fade-in {

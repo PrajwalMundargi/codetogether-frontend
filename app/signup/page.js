@@ -4,6 +4,8 @@ import * as THREE from 'three';
 import { Github } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function ThreeBackground(){
     const mountRef = useRef(null);
@@ -140,43 +142,98 @@ function SignupPage() {
         email: '',
         password: ''
     });
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleChange = (e) => {
         setForm({
             ...form,
             [e.target.name]: e.target.value
         });
-        if(error) setError('');
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setError('');
-
+    const validateForm = () => {
         // Basic form validation
-        if (!form.userName || !form.email || !form.password) {
-            setError('Please fill in all fields');
-            setLoading(false);
-            return;
+        if (!form.userName.trim()) {
+            toast.error('Please enter your full name', {
+                position: "top-right",
+                theme: "dark",
+                style: {
+                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                    color: 'white'
+                }
+            });
+            return false;
+        }
+
+        if (!form.email.trim()) {
+            toast.error('Please enter your email address', {
+                position: "top-right",
+                theme: "dark",
+                style: {
+                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                    color: 'white'
+                }
+            });
+            return false;
         }
 
         // Email format validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(form.email)) {
-            setError('Please enter a valid email address');
-            setLoading(false);
-            return;
+            toast.error('Please enter a valid email address', {
+                position: "top-right",
+                theme: "dark",
+                style: {
+                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                    color: 'white'
+                }
+            });
+            return false;
+        }
+
+        if (!form.password) {
+            toast.error('Please enter a password', {
+                position: "top-right",
+                theme: "dark",
+                style: {
+                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                    color: 'white'
+                }
+            });
+            return false;
         }
 
         // Password strength validation
         if (form.password.length < 6) {
-            setError('Password must be at least 6 characters long');
-            setLoading(false);
+            toast.error('Password must be at least 6 characters long', {
+                position: "top-right",
+                theme: "dark",
+                autoClose: 4000,
+                style: {
+                    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                    color: 'white'
+                }
+            });
+            return false;
+        }
+
+        return true;
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        
+        if (!validateForm()) {
             return;
         }
+
+        setIsLoading(true);
+        
+        // Show loading toast
+        const loadingToast = toast.loading("Creating your account...", {
+            position: "top-right",
+            theme: "dark"
+        });
 
         try {
             const response = await fetch('https://codetogether-backend-tr5r.onrender.com/api/auth/sign-up', {
@@ -186,23 +243,25 @@ function SignupPage() {
                 },
                 body: JSON.stringify(form),
             });
-            router.push('https://codetogether-frontend-ten.vercel.app/dashboard');
 
             const data = await response.json();
 
+            // Dismiss loading toast
+            toast.dismiss(loadingToast);
+
             if (!response.ok) {
-            // Handle different types of error responses
-            const errorMessage = data.message || data.error || 'Signup failed';
-            throw new Error(errorMessage);
+                // Handle different types of error responses
+                const errorMessage = data.message || data.error || 'Signup failed';
+                throw new Error(errorMessage);
             }
 
             if (!data.success) {
-            throw new Error(data.message || 'Signup failed');
+                throw new Error(data.message || 'Signup failed');
             }
 
             // Store token if provided
             if(data.data?.token){
-                // In a real application you'd use localStorage, but for this demo we'll use state
+                localStorage.setItem('token', data.data.token);
                 console.log('Token received:', data.data.token);
             }
 
@@ -213,14 +272,43 @@ function SignupPage() {
                 password: ''
             });
             
-            alert('Signup successful! Welcome aboard!');
+            // Show success toast
+            toast.success("🎉 Account created successfully! Welcome aboard!", {
+                position: "top-right",
+                autoClose: 3000,
+                theme: "dark",
+                style: {
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: 'white'
+                }
+            });
+
             console.log('Registration successful:', data);
+            
+            // Redirect after showing success message
+            setTimeout(() => {
+                router.push('https://codetogether-frontend-ten.vercel.app/dashboard');
+            }, 2000);
 
         } catch (error) {
+            // Dismiss loading toast
+            toast.dismiss(loadingToast);
+            
             console.error('Signup failed:', error);
-            setError(error.message || 'Signup failed. Please try again.');
+            
+            // Show error toast with specific message
+            const errorMessage = error.message || 'Signup failed. Please try again.';
+            toast.error(errorMessage, {
+                position: "top-right",
+                autoClose: 5000,
+                theme: "dark",
+                style: {
+                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                    color: 'white'
+                }
+            });
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
     };
 
@@ -243,15 +331,8 @@ function SignupPage() {
                             <p className="text-white/70">Create your account to get started</p>
                         </div>
 
-                        {/* Error Message */}
-                        {error && (
-                            <div className="mb-6 p-3 bg-red-500/20 border border-red-400/30 rounded-lg text-red-200 text-sm">
-                                {error}
-                            </div>
-                        )}
-
                         {/* Form */}
-                        <div className="space-y-6">
+                        <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Full Name Input */}
                             <div className="space-y-2">
                                 <label htmlFor="userName" className="block text-sm font-medium text-white/90">
@@ -266,8 +347,8 @@ function SignupPage() {
                                         value={form.userName}
                                         onChange={handleChange}
                                         required
-                                        disabled={loading}
-                                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur-sm transition-all duration-300 disabled:opacity-50"
+                                        disabled={isLoading}
+                                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                     />
                                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                         <svg className="h-5 w-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -291,8 +372,8 @@ function SignupPage() {
                                         value={form.email}
                                         onChange={handleChange}
                                         required
-                                        disabled={loading}
-                                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur-sm transition-all duration-300 disabled:opacity-50"
+                                        disabled={isLoading}
+                                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                     />
                                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                         <svg className="h-5 w-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -316,8 +397,8 @@ function SignupPage() {
                                         value={form.password}
                                         onChange={handleChange}
                                         required
-                                        disabled={loading}
-                                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur-sm transition-all duration-300 disabled:opacity-50"
+                                        disabled={isLoading}
+                                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                     />
                                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                         <svg className="h-5 w-5 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -330,18 +411,29 @@ function SignupPage() {
                             {/* Submit Button */}
                             <button 
                                 type="submit"
-                                onClick={handleSubmit}
-                                disabled={loading}
-                                className="w-full py-3 px-4 bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 focus:ring-offset-transparent"
+                                disabled={isLoading}
+                                className="w-full py-3 px-4 bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 focus:ring-offset-transparent disabled:transform-none"
                             >
                                 <span className="flex items-center justify-center">
-                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                                    </svg>
-                                    {loading ? 'Creating Account...' : 'Create Account'}
+                                    {isLoading ? (
+                                        <>
+                                            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            Creating Account...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                                            </svg>
+                                            Create Account
+                                        </>
+                                    )}
                                 </span>
                             </button>
-                        </div>
+                        </form>
 
                         <div className="relative my-6">
                             <div className="absolute inset-0 flex items-center">
@@ -357,9 +449,9 @@ function SignupPage() {
                         {/* GitHub Login */}
                         <div>
                             <a href="https://github.com/login/oauth/authorize?client_id=Ov23lie11ZKh27OLsYzH&scope=user&state=randomstring">
-                                <button type="button" className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg transition">
+                                <button type="button" className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg shadow-lg transform transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-transparent">
                                     <Github size={20} />
-                                    Login with GitHub
+                                    Sign up with GitHub
                                 </button>
                             </a>
                         </div>
@@ -379,6 +471,25 @@ function SignupPage() {
                     </div>
                 </div>
             </div>
+            
+            {/* Toast Container */}
+            <ToastContainer
+                position="top-right"
+                autoClose={3000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme="dark"
+                toastStyle={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                }}
+            />
         </div>
     );
 }
