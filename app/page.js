@@ -510,7 +510,7 @@ const HomePage = () => {
                   Code Anywhere, Anytime
                 </h1>
                 <p className="text-xl mb-8 text-white/70 leading-relaxed">
-                  Experience the future of coding with our powerful online IDE. Build, test, and deploy your projects seamlessly in the cloud.
+                  Experience the future of coding with our powerful online IDE. Build, test, and deploy your projects.
                 </p>
                 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -568,7 +568,7 @@ const HomePage = () => {
       <div className="text-left">
         <h3 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
           <span className="text-2xl">👨‍💻</span>
-          Built by Developer
+          Built by Prajwal Mundargi
         </h3>
         <p className="text-white/70 mb-4 leading-relaxed">
           Passionate full-stack developer who loves creating tools that make coding more collaborative and fun. 
